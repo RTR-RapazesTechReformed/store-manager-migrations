@@ -11,11 +11,28 @@ USE RTR;
 -- =====================================================
 
 -- -----------------------------------------------------
--- TABLE: user_role
--- User roles (Admin, Staff, etc.)
+-- TABLE: permission
+-- Defines available actions in the system.
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS user_role (
+CREATE TABLE IF NOT EXISTS permission (
   id CHAR(36) PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  description VARCHAR(255) NOT NULL,
+  
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: user_role (ATUALIZADA para ID de 3 dígitos)
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS user_role;
+CREATE TABLE IF NOT EXISTS user_role (
+  id CHAR(3) PRIMARY KEY,
   name VARCHAR(100) NOT NULL UNIQUE,
   description VARCHAR(100) NOT NULL,
   
@@ -23,8 +40,27 @@ CREATE TABLE IF NOT EXISTS user_role (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_by CHAR(36) NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE
+  
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: role_permission
+-- N:N relation between user_role and permission
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS role_permission (
+  role_id CHAR(3) NOT NULL,
+  permission_id CHAR(36) NOT NULL,
+  
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted BOOLEAN DEFAULT FALSE,
-  deleted_at TIMESTAMP NULL
+  
+  PRIMARY KEY (role_id, permission_id),
+  FOREIGN KEY (role_id) REFERENCES user_role(id),
+  FOREIGN KEY (permission_id) REFERENCES permission(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------
@@ -43,8 +79,7 @@ CREATE TABLE IF NOT EXISTS user (
   updated_by CHAR(36) NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted BOOLEAN DEFAULT FALSE,
-  deleted_at TIMESTAMP NULL,
-
+  
   FOREIGN KEY (role_id) REFERENCES user_role(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -62,8 +97,8 @@ CREATE TABLE IF NOT EXISTS collection (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_by CHAR(36) NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  deleted BOOLEAN DEFAULT FALSE,
-  deleted_at TIMESTAMP NULL
+  deleted BOOLEAN DEFAULT FALSE
+  
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------
@@ -102,7 +137,6 @@ CREATE TABLE IF NOT EXISTS card (
   updated_by CHAR(36) NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted BOOLEAN DEFAULT FALSE,
-  deleted_at TIMESTAMP NULL,
 
   FOREIGN KEY (collection_id) REFERENCES collection(id),
   UNIQUE (code, collection_id)
@@ -135,7 +169,6 @@ CREATE TABLE IF NOT EXISTS product (
   updated_by CHAR(36) NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted BOOLEAN DEFAULT FALSE,
-  deleted_at TIMESTAMP NULL,
 
   FOREIGN KEY (card_id) REFERENCES card(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -153,7 +186,6 @@ CREATE TABLE IF NOT EXISTS inventory (
   updated_by CHAR(36) NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted BOOLEAN DEFAULT FALSE,
-  deleted_at TIMESTAMP NULL,
 
   FOREIGN KEY (product_id) REFERENCES product(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -177,7 +209,6 @@ CREATE TABLE IF NOT EXISTS inventory_movement (
   updated_by CHAR(36) NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted BOOLEAN DEFAULT FALSE,
-  deleted_at TIMESTAMP NULL,
 
   FOREIGN KEY (product_id) REFERENCES product(id),
   FOREIGN KEY (user_id) REFERENCES user(id)
@@ -203,3 +234,44 @@ CREATE TABLE IF NOT EXISTS price_history (
   FOREIGN KEY (product_id) REFERENCES product(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 */
+
+-- =====================================================
+-- INSERTS INICIAIS
+-- =====================================================
+
+-- ROLES
+INSERT INTO user_role (id, name, description) VALUES
+('001', 'admin', 'Acesso total ao sistema'),
+('002', 'manager', 'Gerencia estoque e relatórios'),
+('003', 'staff', 'Cadastro de cartas e vendas');
+
+-- PERMISSIONS
+INSERT INTO permission (id, name, description) VALUES
+(UUID(), 'card.create', 'Cadastrar novas cartas'),
+(UUID(), 'card.update', 'Editar cartas existentes'),
+(UUID(), 'card.delete', 'Remover cartas'),
+(UUID(), 'inventory.view', 'Visualizar estoque'),
+(UUID(), 'inventory.update', 'Alterar quantidades do estoque'),
+(UUID(), 'pricing.update', 'Atualizar precificação'),
+(UUID(), 'report.view', 'Visualizar dashboards e relatórios'),
+(UUID(), 'user.manage', 'Gerenciar usuários e cargos'),
+(UUID(), 'order.create', 'Realizar compras'),
+(UUID(), 'order.view', 'Visualizar histórico de pedidos');
+
+-- ROLE_PERMISSIONS
+-- admin: todas
+INSERT INTO role_permission (role_id, permission_id)
+SELECT '001', id FROM permission;
+
+-- manager: gestão de cartas, estoque, pricing e relatórios
+INSERT INTO role_permission (role_id, permission_id)
+SELECT '002', id FROM permission WHERE name IN (
+  'card.create','card.update','inventory.view','inventory.update',
+  'pricing.update','report.view','order.view'
+);
+
+-- staff: cadastro de cartas e pedidos
+INSERT INTO role_permission (role_id, permission_id)
+SELECT '003', id FROM permission WHERE name IN (
+  'card.create','card.update','inventory.view','order.create'
+);
