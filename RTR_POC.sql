@@ -215,6 +215,21 @@ CREATE TABLE IF NOT EXISTS inventory_movement (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------
+-- TABLE: user_session
+-- User session
+-- ----------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_session (
+  id CHAR(36) PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
+  token VARCHAR(255) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP NOT NULL,
+  active BOOLEAN DEFAULT TRUE,
+
+  FOREIGN KEY (user_id) REFERENCES user(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
 -- TABLE: price_history
 -- Historical product prices.
 -- -----------------------------------------------------
