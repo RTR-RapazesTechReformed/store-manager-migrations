@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS permission (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------
--- TABLE: user_role (ATUALIZADA para ID de 3 dígitos)
+-- TABLE: user_role
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS user_role;
 CREATE TABLE IF NOT EXISTS user_role (
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS user (
   name VARCHAR(200) NOT NULL,
   email VARCHAR(200) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
-  role_id CHAR(36) NOT NULL,
+  role_id CHAR(3) NOT NULL,
 
   created_by CHAR(36) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -92,13 +92,13 @@ CREATE TABLE IF NOT EXISTS collection (
   name VARCHAR(200) NOT NULL,
   abbreviation VARCHAR(50),
   release_date DATE,
-
+  generation VARCHAR(50) NULL,
+  
   created_by CHAR(36) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_by CHAR(36) NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted BOOLEAN DEFAULT FALSE
-  
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------
@@ -113,25 +113,25 @@ CREATE TABLE IF NOT EXISTS card (
   collection_id CHAR(36) NOT NULL,
   code VARCHAR(10) NOT NULL,
   rarity ENUM(
-  'common',
-  'uncommon',
-  'rare',
-  'rare_holo',
-  'rare_reverse_holo',
-  'rare_holo_ex',
-  'rare_holo_gx',
-  'rare_holo_v',
-  'rare_holo_vmax',
-  'rare_holo_vstar',
-  'rare_prime',
-  'rare_legend',
-  'rare_break',
-  'rare_ultra',
-  'rare_secret',
-  'rare_promo'
-) NOT NULL DEFAULT 'common',
-
-
+    'COMMON',
+    'UNCOMMON',
+    'RARE',
+    'RARE_HOLO',
+    'RARE_REVERSE_HOLO',
+    'RARE_HOLO_EX',
+    'RARE_HOLO_GX',
+    'RARE_HOLO_V',
+    'RARE_HOLO_VMAX',
+    'RARE_HOLO_VSTAR',
+    'RARE_PRIME',
+    'RARE_LEGEND',
+    'RARE_BREAK',
+    'RARE_ULTRA',
+    'RARE_SECRET',
+    'RARE_PROMO'
+  ) NOT NULL DEFAULT 'COMMON',
+  nationality VARCHAR(3) NULL,
+  
   created_by CHAR(36) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_by CHAR(36) NULL,
@@ -142,27 +142,21 @@ CREATE TABLE IF NOT EXISTS card (
   UNIQUE (code, collection_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+
 -- -----------------------------------------------------
 -- TABLE: product
--- Generic store products (cards, booster boxes, accessories).
 -- -----------------------------------------------------
+DROP TABLE IF EXISTS product;
 CREATE TABLE IF NOT EXISTS product (
   id CHAR(36) PRIMARY KEY,
   name VARCHAR(200) NOT NULL,
-  description VARCHAR(500), 
-  type ENUM('card', 'booster_box', 'accessory') NOT NULL,
-  card_id CHAR(36), 
+  description VARCHAR(500),
+  card_id CHAR(36) NULL,
+  other_product_id CHAR(36) NULL,
   price DECIMAL(10,2) NOT NULL DEFAULT 0,
   product_condition ENUM(
-  'mint',
-  'lightly_played',
-  'moderately_played',
-  'heavily_played',
-  'damaged',
-  'sealed',
-  'opened',
-  'used'
-  ) NOT NULL DEFAULT 'mint',
+    'MINT', 'LIGHTLY_PLAYED', 'MODERATELY_PLAYED', 'HEAVILY_PLAYED', 'DAMAGED', 'SEALED', 'OPENED', 'USED'
+  ) NOT NULL DEFAULT 'MINT',
 
   created_by CHAR(36) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -170,12 +164,25 @@ CREATE TABLE IF NOT EXISTS product (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted BOOLEAN DEFAULT FALSE,
 
-  FOREIGN KEY (card_id) REFERENCES card(id)
+  FOREIGN KEY (card_id) REFERENCES card(id),
+  FOREIGN KEY (other_product_id) REFERENCES other_product(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------
+-- TABLE: other_product
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS other_product;
+CREATE TABLE IF NOT EXISTS other_product (
+  id CHAR(36) PRIMARY KEY,
+  type ENUM('BOOSTER_BOX','ACCESSORY','OTHER') NOT NULL,
+  nationality VARCHAR(50) NULL,
+  package_contents VARCHAR(255) NULL,
+  extra_info VARCHAR(255) NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- -----------------------------------------------------
 -- TABLE: inventory
--- Current inventory snapshot.
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS inventory (
   product_id CHAR(36) PRIMARY KEY,
@@ -198,12 +205,12 @@ CREATE TABLE IF NOT EXISTS inventory_movement (
   id CHAR(36) PRIMARY KEY,
   product_id CHAR(36) NOT NULL,
   user_id CHAR(36) NOT NULL,
-  quantity INT NOT NULL, -- positive = in, negative = out
+  quantity INT NOT NULL,
   unit_purchase_price DECIMAL(10,2) NULL, 
   unit_sale_price DECIMAL(10,2) NULL,
   type ENUM('in','out','adjust') NOT NULL,
   description VARCHAR(255),
-	
+  
   created_by CHAR(36) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_by CHAR(36) NULL,
