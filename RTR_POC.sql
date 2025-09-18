@@ -2,7 +2,7 @@
 -- BANCO DE DADOS MERURU TCG - POC SIMPLES
 -- =====================================================
 
- drop database RTR;
+drop database RTR;
 CREATE DATABASE IF NOT EXISTS RTR CHARACTER SET = 'utf8mb4' COLLATE = 'utf8mb4_unicode_ci';
 USE RTR;
 
@@ -142,6 +142,24 @@ CREATE TABLE IF NOT EXISTS card (
   UNIQUE (code, collection_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- -----------------------------------------------------
+-- TABLE: other_product
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS other_product;
+CREATE TABLE IF NOT EXISTS other_product (
+  id CHAR(36) PRIMARY KEY,
+  type ENUM('BOOSTER_BOX','ACCESSORY','OTHER') NOT NULL,
+  nationality VARCHAR(50) NULL,
+  package_contents VARCHAR(255) NULL,
+  extra_info VARCHAR(255) NULL,
+  
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE
+  
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------
 -- TABLE: product
@@ -167,19 +185,6 @@ CREATE TABLE IF NOT EXISTS product (
   FOREIGN KEY (card_id) REFERENCES card(id),
   FOREIGN KEY (other_product_id) REFERENCES other_product(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- -----------------------------------------------------
--- TABLE: other_product
--- -----------------------------------------------------
-DROP TABLE IF EXISTS other_product;
-CREATE TABLE IF NOT EXISTS other_product (
-  id CHAR(36) PRIMARY KEY,
-  type ENUM('BOOSTER_BOX','ACCESSORY','OTHER') NOT NULL,
-  nationality VARCHAR(50) NULL,
-  package_contents VARCHAR(255) NULL,
-  extra_info VARCHAR(255) NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 -- -----------------------------------------------------
 -- TABLE: inventory
@@ -228,9 +233,8 @@ CREATE TABLE IF NOT EXISTS inventory_movement (
 CREATE TABLE IF NOT EXISTS user_session (
   id CHAR(36) PRIMARY KEY,
   user_id CHAR(36) NOT NULL,
-  token VARCHAR(255) NOT NULL UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  expires_at TIMESTAMP NOT NULL,
+  ended_at TIMESTAMP NOT NULL,
   active BOOLEAN DEFAULT TRUE,
 
   FOREIGN KEY (user_id) REFERENCES user(id)
@@ -267,6 +271,9 @@ INSERT INTO user_role (id, name, description) VALUES
 ('002', 'manager', 'Gerencia estoque e relatórios'),
 ('003', 'staff', 'Cadastro de cartas e vendas');
 
+update user_role set deleted = false where id = '002';
+update user_role set deleted = false where id = '001';
+update user_role set deleted = false where id = '003';
 -- PERMISSIONS
 INSERT INTO permission (id, name, description) VALUES
 (UUID(), 'card.create', 'Cadastrar novas cartas'),
