@@ -213,9 +213,9 @@ CREATE TABLE IF NOT EXISTS inventory_movement (
   quantity INT NOT NULL,
   unit_purchase_price DECIMAL(10,2) NULL, 
   unit_sale_price DECIMAL(10,2) NULL,
-  type ENUM('in','out','adjust') NOT NULL,
+  type ENUM('IN','OUT','ADJUST') NOT NULL,
   description VARCHAR(255),
-  
+    type ENUM('IN','OUT','ADJUST') NOT NULL,
   created_by CHAR(36) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_by CHAR(36) NULL,
@@ -304,3 +304,7 @@ INSERT INTO role_permission (role_id, permission_id)
 SELECT '003', id FROM permission WHERE name IN (
   'card.create','card.update','inventory.view','order.create'
 );
+
+select * from inventory_movement;
+
+
