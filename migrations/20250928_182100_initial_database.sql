@@ -1,0 +1,355 @@
+-- =====================================================
+-- BANCO DE DADOS MERURU TCG - POC SIMPLES
+-- =====================================================
+
+drop database RTR;
+CREATE DATABASE IF NOT EXISTS RTR CHARACTER SET = 'utf8mb4' COLLATE = 'utf8mb4_unicode_ci';
+USE RTR;
+
+-- =====================================================
+-- MERURU TCG DATABASE - SIMPLE POC
+-- =====================================================
+
+-- -----------------------------------------------------
+-- TABLE: permission
+-- Defines available actions in the system.
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS permission (
+  id CHAR(36) PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  description VARCHAR(255) NOT NULL,
+  
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: user_role
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS user_role;
+CREATE TABLE IF NOT EXISTS user_role (
+  id CHAR(3) PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  description VARCHAR(100) NOT NULL,
+  
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE
+  
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: role_permission
+-- N:N relation between user_role and permission
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS role_permission (
+  role_id CHAR(3) NOT NULL,
+  permission_id CHAR(36) NOT NULL,
+  
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE,
+  
+  PRIMARY KEY (role_id, permission_id),
+  FOREIGN KEY (role_id) REFERENCES user_role(id),
+  FOREIGN KEY (permission_id) REFERENCES permission(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: user
+-- System users.
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS user (
+  id CHAR(36) PRIMARY KEY,
+  name VARCHAR(200) NOT NULL,
+  email VARCHAR(200) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role_id CHAR(3) NOT NULL,
+
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE,
+  
+  FOREIGN KEY (role_id) REFERENCES user_role(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: collection
+-- Card collections/sets.
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS collection (
+  id CHAR(36) PRIMARY KEY,
+  name VARCHAR(200) NOT NULL,
+  abbreviation VARCHAR(50),
+  release_date DATE,
+  generation VARCHAR(50) NULL,
+  
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: card
+-- Basic card catalog.
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS card (
+  id CHAR(36) PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  season VARCHAR(50),
+  pokemon_type ENUM (
+	'GRASS', 
+	'FIRE', 
+	'WATER', 
+	'LIGHTNING', 
+	'PSYCHIC', 
+	'FIGHTING', 
+    'DARKNESS', 
+    'METAL', 
+    'FAIRY', 
+    'DRAGON', 
+    'COLORLESS'
+  ),
+  collection_id CHAR(36) NOT NULL,
+  code VARCHAR(10) NOT NULL,
+  rarity ENUM(
+    'COMMON',
+    'UNCOMMON',
+    'RARE',
+    'RARE_HOLO',
+    'RARE_REVERSE_HOLO',
+    'RARE_HOLO_EX',
+    'RARE_HOLO_GX',
+    'RARE_HOLO_V',
+    'RARE_HOLO_VMAX',
+    'RARE_HOLO_VSTAR',
+    'RARE_PRIME',
+    'RARE_LEGEND',
+    'RARE_BREAK',
+    'RARE_ULTRA',
+    'RARE_SECRET',
+    'RARE_PROMO'
+  ) NOT NULL DEFAULT 'COMMON',
+  nationality VARCHAR(3) NULL,
+  
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE,
+
+  FOREIGN KEY (collection_id) REFERENCES collection(id),
+  UNIQUE (code, collection_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: other_product
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS other_product;
+CREATE TABLE IF NOT EXISTS other_product (
+  id CHAR(36) PRIMARY KEY,
+  type ENUM('BOOSTER_BOX','ACCESSORY','OTHER') NOT NULL,
+  nationality VARCHAR(50) NULL,
+  package_contents VARCHAR(255) NULL,
+  extra_info VARCHAR(255) NULL,
+  
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE
+  
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: product
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS product;
+CREATE TABLE IF NOT EXISTS product (
+  id CHAR(36) PRIMARY KEY,
+  name VARCHAR(200) NOT NULL,
+  description VARCHAR(500),
+  card_id CHAR(36) NULL,
+  other_product_id CHAR(36) NULL,
+  price DECIMAL(10,2) NOT NULL DEFAULT 0,
+  product_condition ENUM(
+    'MINT', 'LIGHTLY_PLAYED', 'MODERATELY_PLAYED', 'HEAVILY_PLAYED', 'DAMAGED', 'SEALED', 'OPENED', 'USED'
+  ) NOT NULL DEFAULT 'MINT',
+
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE,
+
+  FOREIGN KEY (card_id) REFERENCES card(id),
+  FOREIGN KEY (other_product_id) REFERENCES other_product(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: inventory
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS inventory (
+  product_id CHAR(36) PRIMARY KEY,
+  quantity INT NOT NULL DEFAULT 0,
+
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE,
+
+  FOREIGN KEY (product_id) REFERENCES product(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: inventory_movement
+-- Inventory change history (in/out/adjust).
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS inventory_movement (
+  id CHAR(36) PRIMARY KEY,
+  product_id CHAR(36) NOT NULL,
+  user_id CHAR(36) NOT NULL,
+  quantity INT NOT NULL,
+  unit_purchase_price DECIMAL(10,2) NULL, 
+  unit_sale_price DECIMAL(10,2) NULL,
+  type ENUM('IN','OUT','ADJUST') NOT NULL,
+  description VARCHAR(255),
+    type ENUM('IN','OUT','ADJUST') NOT NULL,
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE,
+
+  FOREIGN KEY (product_id) REFERENCES product(id),
+  FOREIGN KEY (user_id) REFERENCES user(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: user_session
+-- User session
+-- ----------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_session (
+  id CHAR(36) PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  ended_at TIMESTAMP NOT NULL,
+  active BOOLEAN DEFAULT TRUE,
+
+  FOREIGN KEY (user_id) REFERENCES user(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------
+-- TABLE: price_history
+-- Historical product prices.
+-- -----------------------------------------------------
+/*
+CREATE TABLE IF NOT EXISTS price_history (
+  id CHAR(36) PRIMARY KEY,
+  product_id CHAR(36) NOT NULL,
+  price DECIMAL(10,2) NOT NULL,
+
+  created_by CHAR(36) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted BOOLEAN DEFAULT FALSE,
+  deleted_at TIMESTAMP NULL,
+
+  FOREIGN KEY (product_id) REFERENCES product(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+*/
+
+-- =====================================================
+-- INSERTS INICIAIS
+-- =====================================================
+
+-- ROLES
+INSERT INTO user_role (id, name, description) VALUES
+('001', 'admin', 'Acesso total ao sistema'),
+('002', 'manager', 'Gerencia estoque e relatórios'),
+('003', 'staff', 'Cadastro de cartas e vendas');
+
+update user_role set deleted = false where id = '002';
+update user_role set deleted = false where id = '001';
+update user_role set deleted = false where id = '003';
+-- PERMISSIONS
+INSERT INTO permission (id, name, description) VALUES
+(UUID(), 'card.create', 'Cadastrar novas cartas'),
+(UUID(), 'card.update', 'Editar cartas existentes'),
+(UUID(), 'card.delete', 'Remover cartas'),
+(UUID(), 'inventory.view', 'Visualizar estoque'),
+(UUID(), 'inventory.update', 'Alterar quantidades do estoque'),
+(UUID(), 'pricing.update', 'Atualizar precificação'),
+(UUID(), 'report.view', 'Visualizar dashboards e relatórios'),
+(UUID(), 'user.manage', 'Gerenciar usuários e cargos'),
+(UUID(), 'order.create', 'Realizar compras'),
+(UUID(), 'order.view', 'Visualizar histórico de pedidos');
+
+-- ROLE_PERMISSIONS
+-- admin: todas
+INSERT INTO role_permission (role_id, permission_id)
+SELECT '001', id FROM permission;
+
+-- manager: gestão de cartas, estoque, pricing e relatórios
+INSERT INTO role_permission (role_id, permission_id)
+SELECT '002', id FROM permission WHERE name IN (
+  'card.create','card.update','inventory.view','inventory.update',
+  'pricing.update','report.view','order.view'
+);
+
+-- staff: cadastro de cartas e pedidos
+INSERT INTO role_permission (role_id, permission_id)
+SELECT '003', id FROM permission WHERE name IN (
+  'card.create','card.update','inventory.view','order.create'
+);
+
+
+INSERT INTO collection (id, name, abbreviation, release_date, generation, created_by)
+VALUES (UUID(), 'Base Set', 'BS', '1999-01-09', 'GEN1', 'system');
+
+INSERT INTO collection (id, name, abbreviation, release_date, generation, created_by)
+VALUES (UUID(), 'Jungle', 'JU', '1999-06-16', 'GEN1', 'system');
+
+INSERT INTO collection (id, name, abbreviation, release_date, generation, created_by)
+VALUES (UUID(), 'Fossil', 'FO', '1999-10-10', 'GEN1', 'system');
+
+
+SELECT id, name FROM collection;
+
+INSERT INTO card (id, title, season, pokemon_type, collection_id, code, rarity, nationality, created_by)
+VALUES
+  (UUID(), 'Pikachu', '1', 'LIGHTNING', '1f2d8c5c-9b60-430e-a0b4-0e43a4132e16', 'BS-025', 'COMMON', 'JP', 'system'),
+  (UUID(), 'Charizard', '1', 'FIRE', '1f2d8c5c-9b60-430e-a0b4-0e43a4132e16', 'BS-004', 'RARE_HOLO', 'JP', 'system'),
+  (UUID(), 'Blastoise', '1', 'WATER', '1f2d8c5c-9b60-430e-a0b4-0e43a4132e16', 'BS-002', 'RARE_HOLO', 'JP', 'system'),
+  (UUID(), 'Venusaur', '1', 'GRASS', '1f2d8c5c-9b60-430e-a0b4-0e43a4132e16', 'BS-003', 'RARE_HOLO', 'JP', 'system'),
+  (UUID(), 'Machamp', '1', 'FIGHTING', '1f2d8c5c-9b60-430e-a0b4-0e43a4132e16', 'BS-008', 'RARE_HOLO', 'JP', 'system');
+
+INSERT INTO card (id, title, season, pokemon_type, collection_id, code, rarity, nationality, created_by)
+VALUES
+  (UUID(), 'Kangaskhan', '1', 'COLORLESS', 'a5f257b8-9cac-11f0-a716-546ceb889694', 'JU-005', 'RARE_HOLO', 'JP', 'system'),
+  (UUID(), 'Scyther', '1', 'GRASS', 'a5f257b8-9cac-11f0-a716-546ceb889694', 'JU-010', 'RARE_HOLO', 'JP', 'system'),
+  (UUID(), 'Snorlax', '1', 'COLORLESS', 'a5f257b8-9cac-11f0-a716-546ceb889694', 'JU-011', 'RARE_HOLO', 'JP', 'system'),
+  (UUID(), 'Wigglytuff', '1', 'COLORLESS', 'a5f257b8-9cac-11f0-a716-546ceb889694', 'JU-016', 'RARE_HOLO', 'JP', 'system'),
+  (UUID(), 'Electrode', '1', 'LIGHTNING', 'a5f257b8-9cac-11f0-a716-546ceb889694', 'JU-002', 'RARE_HOLO', 'JP', 'system');
+
+INSERT INTO card (id, title, season, pokemon_type, collection_id, code, rarity, nationality, created_by)
+VALUES
+  (UUID(), 'Aerodactyl', '1', 'COLORLESS', 'a72b55d1-9cac-11f0-a716-546ceb889694', 'FO-001', 'RARE_HOLO', 'JP', 'system'),
+  (UUID(), 'Articuno', '1', 'WATER', 'a72b55d1-9cac-11f0-a716-546ceb889694', 'FO-002', 'RARE_HOLO', 'JP', 'system'),
+  (UUID(), 'Ditto', '1', 'COLORLESS', 'a72b55d1-9cac-11f0-a716-546ceb889694', 'FO-003', 'RARE_HOLO', 'JP', 'system'),
+  (UUID(), 'Dragonite', '1', 'COLORLESS', 'ec61f106-9cac-11f0-a716-546ceb889694', 'FO-004', 'RARE_HOLO', 'JP', 'system'),
+  (UUID(), 'Gengar', '1', 'PSYCHIC', 'a72b55d1-9cac-11f0-a716-546ceb889694', 'FO-005', 'RARE_HOLO', 'JP', 'system');
